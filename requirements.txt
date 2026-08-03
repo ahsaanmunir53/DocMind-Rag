@@ -1,0 +1,26 @@
+# --- core (required) ---
+Django==6.0.7
+djangorestframework==3.17.1
+dj-database-url==3.1.2
+python-dotenv==1.2.2
+whitenoise==6.12.0
+pypdf==5.9.0
+
+# --- async (optional: only if CELERY_ENABLED=True) ---
+celery==5.6.3
+redis==8.0.1
+
+# --- real embeddings (optional: only if EMBEDDING_BACKEND=openai) ---
+# openai>=1.40
+
+# --- real answers ---
+# groq uses the openai SDK pointed at Groq's endpoint (LLM_BACKEND=groq)
+openai>=1.40
+# anthropic>=0.40     # only if LLM_BACKEND=anthropic
+
+# --- Postgres + pgvector (optional: only if DATABASE_URL is Postgres) ---
+# psycopg[binary]>=3.2
+# pgvector>=0.3
+
+# --- production server ---
+gunicorn>=23.0

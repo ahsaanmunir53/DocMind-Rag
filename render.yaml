@@ -1,0 +1,37 @@
+# Render deployment blueprint (free tier friendly).
+# Push to GitHub, then in Render: New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: documind
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "gunicorn config.wsgi"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true          # Render generates a strong secret
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      # --- LLM (set your key in the dashboard; never in git) ---
+      - key: LLM_BACKEND
+        value: "groq"                 # cheap + fast; free tier available
+      - key: GROQ_API_KEY
+        sync: false                   # you paste this in the dashboard (never in git)
+      - key: LLM_MODEL
+        value: "openai/gpt-oss-120b"  # Groq retired llama-3.3-70b-versatile (Jun 2026)
+      - key: EMBEDDING_BACKEND
+        value: "local"                # free; switch to openai for better search
+      # --- database: uncomment to attach Postgres + pgvector ---
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: documind-db
+      #     property: connectionString
+
+# Uncomment to provision a managed Postgres (enable the vector extension once).
+# databases:
+#   - name: documind-db
+#     plan: free

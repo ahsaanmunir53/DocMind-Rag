@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create your account · DocuMind</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root{--bg:#07070c;--card:rgba(255,255,255,.04);--line:rgba(255,255,255,.1);--ink:#f4f5fb;--muted:#9aa0b4;--brand:#7c7cff;--brand2:#a78bfa}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:grid;place-items:center;padding:24px;
+      background-image:radial-gradient(60% 50% at 50% 0,rgba(124,124,255,.16),transparent)}
+    .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:38px;backdrop-filter:blur(12px)}
+    .logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:20px;margin-bottom:6px}
+    .logo .dot{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;box-shadow:0 0 20px rgba(124,124,255,.4)}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:26px}
+    label{display:block;font-size:13px;font-weight:600;margin:16px 0 6px}
+    input{width:100%;padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:14px}
+    input:focus{outline:none;border-color:var(--brand)}
+    .help{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4}
+    .btn{width:100%;margin-top:24px;padding:13px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border:0;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;box-shadow:0 8px 24px rgba(124,124,255,.3)}
+    .btn:hover{transform:translateY(-1px)}
+    .err{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#fda4a4;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:14px}
+    .foot{text-align:center;margin-top:22px;font-size:13px;color:var(--muted)}
+    .foot a{color:var(--brand2);font-weight:600;text-decoration:none}
+    a.back{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-bottom:20px}
+  </style>
+</head>
+<body>
+  <form class="card" method="post">
+    {% csrf_token %}
+    <a class="back" href="/">← Back</a>
+    <div class="logo"><span class="dot">◆</span> DocuMind</div>
+    <p class="sub">Create your account and start chatting with your documents.</p>
+
+    {% if form.non_field_errors %}<div class="err">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+    <label>Username</label>
+    <input name="username" value="{{ form.username.value|default:'' }}" autofocus required />
+    {% if form.username.errors %}<div class="err">{{ form.username.errors|join:" " }}</div>{% endif %}
+
+    <label>Password</label>
+    <input name="password1" type="password" required />
+    <div class="help">At least 8 characters, not too common, not all numbers.</div>
+    {% if form.password1.errors %}<div class="err">{{ form.password1.errors|join:" " }}</div>{% endif %}
+
+    <label>Confirm password</label>
+    <input name="password2" type="password" required />
+    {% if form.password2.errors %}<div class="err">{{ form.password2.errors|join:" " }}</div>{% endif %}
+
+    <button class="btn" id="submitBtn" type="submit">Create account</button>
+    <p class="foot">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+  </form>
+  <script>
+    // A double-clicked submit sends two POSTs at once, which used to race and
+    // 500 on the UNIQUE username constraint. Disable after the first click.
+    document.querySelector('form').addEventListener('submit', function () {
+      var b = document.getElementById('submitBtn');
+      b.disabled = true;
+      b.textContent = 'Creating account\u2026';
+      b.style.opacity = '0.6';
+      b.style.cursor = 'not-allowed';
+    });
+  </script>
+</body>
+</html>

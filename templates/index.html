@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DocuMind · Chat with your documents</title>
+  <style>
+    :root { --ink:#0f1222; --muted:#6b7280; --line:#e6e8f0; --brand:#4f46e5; --brand2:#eef2ff; --bg:#f7f8fc; --ok:#059669; --warn:#d97706; --err:#dc2626; }
+    * { box-sizing:border-box; } html,body { margin:0; height:100%; }
+    body { font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+    .app { display:grid; grid-template-columns:300px 1fr; height:100vh; }
+    /* sidebar */
+    .side { border-right:1px solid var(--line); background:#fff; display:flex; flex-direction:column; min-height:0; }
+    .brand { padding:18px 20px; font-weight:700; font-size:18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+    .brand a { font-size:12px; color:var(--muted); text-decoration:none; font-weight:500; }
+    .up { padding:16px 20px; border-bottom:1px solid var(--line); }
+    .up input[type=file] { width:100%; font-size:13px; }
+    .up button { margin-top:10px; width:100%; padding:9px; border:0; border-radius:9px; background:var(--brand); color:#fff; font-weight:600; cursor:pointer; font-size:13px; }
+    .docs { flex:1; overflow:auto; padding:10px 12px; min-height:0; }
+    .doc { padding:10px 12px; border-radius:10px; cursor:pointer; border:1px solid transparent; margin-bottom:4px; }
+    .doc:hover { background:var(--brand2); } .doc.active { background:var(--brand2); border-color:var(--brand); }
+    .doc .t { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .doc .s { font-size:11px; margin-top:2px; }
+    .pill { display:inline-block; padding:1px 7px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .pill.ready{background:#ecfdf5;color:var(--ok)} .pill.processing,.pill.pending{background:#fffbeb;color:var(--warn)} .pill.failed{background:#fef2f2;color:var(--err)}
+    /* main */
+    .main { display:flex; flex-direction:column; min-height:0; }
+    .head { padding:16px 24px; border-bottom:1px solid var(--line); background:#fff; font-size:14px; color:var(--muted); }
+    .head b { color:var(--ink); }
+    .feed { flex:1; overflow:auto; padding:24px; display:flex; flex-direction:column; gap:16px; min-height:0; }
+    .msg { max-width:760px; } .msg.user { align-self:flex-end; }
+    .bubble { padding:12px 16px; border-radius:14px; font-size:14px; line-height:1.5; white-space:pre-wrap; }
+    .user .bubble { background:var(--brand); color:#fff; border-bottom-right-radius:4px; }
+    .bot .bubble { background:#fff; border:1px solid var(--line); border-bottom-left-radius:4px; }
+    .sources { margin-top:8px; font-size:12px; color:var(--muted); }
+    .src { background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px; }
+    .src b { color:var(--ink); }
+    .empty { margin:auto; text-align:center; color:var(--muted); max-width:420px; }
+    .empty h2 { color:var(--ink); }
+    .composer { border-top:1px solid var(--line); background:#fff; padding:14px 24px; display:flex; gap:10px; }
+    .composer input { flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:12px; font-size:14px; }
+    .composer button { padding:12px 20px; border:0; border-radius:12px; background:var(--brand); color:#fff; font-weight:600; cursor:pointer; }
+    .composer button:disabled { opacity:.5; cursor:not-allowed; }
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; opacity:0; transition:.2s; }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="side">
+      <div class="brand">
+        <a href="/" style="text-decoration:none;color:inherit">DocuMind</a>
+        <form action="/accounts/logout/" method="post" style="display:inline">{% csrf_token %}<button type="submit" style="background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:0">Sign out</button></form>
+      </div>
+      <div class="up">
+        <input type="file" id="file" accept=".pdf,.txt,.md" />
+        <button id="uploadBtn">Upload document</button>
+      </div>
+      <div class="docs" id="docs"></div>
+    </aside>
+    <main class="main">
+      <div class="head" id="scope">Ask across <b>all documents</b></div>
+      <div class="feed" id="feed">
+        <div class="empty" id="empty">
+          <h2>Chat with your documents</h2>
+          <p>Upload a PDF or text file on the left, wait for it to say <b>ready</b>, then ask a question. Answers cite the source passages.</p>
+        </div>
+      </div>
+      <div class="composer">
+        <input id="q" placeholder="Ask a question about your documents…" />
+        <button id="send">Ask</button>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+// CSRF token rendered server-side by Django — always present, and this tag
+// also guarantees the csrftoken cookie is set (which DRF checks against).
+window.CSRF_TOKEN = "{{ csrf_token }}";
+function getCookie(name){ return document.cookie.split('; ').find(r=>r.startsWith(name+'='))?.split('=')[1]; }
+let activeDoc = null;        // null => all documents
+let conversation = null;
+const $ = s => document.querySelector(s);
+
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+async function api(url, opts={}){
+  const res = await fetch(url, {
+    headers:{'X-CSRFToken': window.CSRF_TOKEN || getCookie('csrftoken') || '', ...(opts.headers||{})},
+    credentials:'same-origin',
+    ...opts
+  });
+  if(res.status===403){ location.href='/accounts/login/'; return; }
+  return res;
+}
+
+async function loadDocs(){
+  const res = await api('/api/documents/'); if(!res) return;
+  const docs = await res.json();
+  const box = $('#docs'); box.innerHTML='';
+  const all = document.createElement('div');
+  all.className='doc'+(activeDoc===null?' active':''); all.innerHTML='<div class="t">📚 All documents</div>';
+  all.onclick=()=>{ activeDoc=null; conversation=null; renderScope(); loadDocs(); clearFeed(); };
+  box.appendChild(all);
+  docs.forEach(d=>{
+    const el=document.createElement('div');
+    el.className='doc'+(activeDoc===d.id?' active':'');
+    el.innerHTML=`<div class="t">📄 ${d.title}</div><div class="s"><span class="pill ${d.status}">${d.status}</span> ${d.num_chunks?d.num_chunks+' chunks':''}</div>`;
+    el.onclick=()=>{ if(d.status!=='ready'){toast('This document is '+d.status+'.');return;} activeDoc=d.id; conversation=null; renderScope(); loadDocs(); clearFeed(); };
+    box.appendChild(el);
+  });
+  // keep polling while anything is still processing
+  if(docs.some(d=>d.status==='pending'||d.status==='processing')) setTimeout(loadDocs, 1500);
+}
+
+function renderScope(){
+  if(activeDoc===null){ $('#scope').innerHTML='Ask across <b>all documents</b>'; return; }
+  const t=[...document.querySelectorAll('.doc .t')].find(x=>x)? null:null;
+  $('#scope').innerHTML='Asking within <b>selected document</b>';
+}
+function clearFeed(){ $('#feed').innerHTML='<div class="empty"><h2>Ask a question</h2><p>Type below to query your documents.</p></div>'; }
+
+function addMsg(role, html, sources){
+  const empty=$('#empty'); if(empty) empty.remove();
+  const wrap=document.createElement('div'); wrap.className='msg '+(role==='user'?'user':'bot');
+  let s=''; if(sources && sources.length){
+    s='<div class="sources"><b>Sources:</b>'+sources.map((x,i)=>`<div class="src"><b>[${i+1}] ${x.document}</b> · part ${x.index+1} · score ${x.score}<br>${x.text}…</div>`).join('')+'</div>';
+  }
+  wrap.innerHTML=`<div class="bubble">${html}</div>${s}`;
+  $('#feed').appendChild(wrap); $('#feed').scrollTop=$('#feed').scrollHeight;
+}
+
+async function ask(){
+  const q=$('#q').value.trim(); if(!q) return;
+  $('#q').value=''; $('#send').disabled=true;
+  addMsg('user', q);
+  addMsg('bot', '…thinking');
+  const thinking=$('#feed').lastChild;
+  try{
+    const res=await api('/api/chat/ask/', { method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ question:q, document:activeDoc, conversation }) });
+    const data=await res.json();
+    thinking.remove();
+    if(res.ok){ conversation=data.conversation; addMsg('bot', data.message.content, data.message.sources); }
+    else addMsg('bot', 'Error: '+(data.error||'something went wrong'));
+  }catch(e){ thinking.remove(); addMsg('bot','Network error.'); }
+  $('#send').disabled=false; $('#q').focus();
+}
+
+$('#uploadBtn').onclick=async()=>{
+  const f=$('#file').files[0]; if(!f){ toast('Choose a file first.'); return; }
+  const fd=new FormData(); fd.append('file', f); fd.append('title', f.name);
+  $('#uploadBtn').disabled=true; $('#uploadBtn').textContent='Uploading…';
+  const res=await api('/api/documents/', { method:'POST', body:fd });
+  $('#uploadBtn').disabled=false; $('#uploadBtn').textContent='Upload document';
+  if(res && res.ok){ $('#file').value=''; toast('Uploaded — processing…'); loadDocs(); }
+  else toast('Upload failed.');
+};
+$('#send').onclick=ask;
+$('#q').addEventListener('keydown', e=>{ if(e.key==='Enter') ask(); });
+loadDocs();
+</script>
+</body>
+</html>
