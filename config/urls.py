@@ -12,6 +12,7 @@ urlpatterns = [
     # pages
     path("", views.home, name="home"),                 # public 3D landing
     path("app/", views.app, name="app"),               # the chat app (login required)
+    path("cv/", views.cv, name="cv"),                  # CV tailoring workspace
 
     # auth
     path("accounts/signup/", views.signup, name="signup"),
@@ -21,6 +22,7 @@ urlpatterns = [
     # REST API
     path("api/documents/", include("documents.urls")),
     path("api/chat/", include("chat.urls")),
+    path("api/resume/", include("resume.urls")),
     path("api-auth/", include("rest_framework.urls")),
 ]
 

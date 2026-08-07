@@ -23,6 +23,13 @@ def app(request):
     return render(request, "index.html")
 
 
+@ensure_csrf_cookie
+@login_required
+def cv(request):
+    """The CV tailoring workspace."""
+    return render(request, "cv.html")
+
+
 def signup(request):
     """Public self-serve registration."""
     if request.user.is_authenticated:

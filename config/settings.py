@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     # local
     "documents",
     "chat",
+    "resume",
 ]
 
 MIDDLEWARE = [
@@ -114,29 +115,62 @@ EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "local").strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small").strip()
 
-LLM_BACKEND = os.getenv("LLM_BACKEND", "echo").strip().lower()
+LLM_BACKEND = os.getenv("LLM_BACKEND", "groq").strip().lower()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 
-# Sensible default model per backend if LLM_MODEL isn't explicitly set.
+# Groq retires models on a published schedule, so every model ID is an env
+# variable with a current default rather than a constant buried in the code.
+# Check console.groq.com/docs/deprecations before assuming these still exist.
+GROQ_TEXT_MODEL = os.getenv("GROQ_TEXT_MODEL", "openai/gpt-oss-120b").strip()
+GROQ_FAST_MODEL = os.getenv("GROQ_FAST_MODEL", "openai/gpt-oss-20b").strip()
+GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.6-27b").strip()
+
 _DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-6",
-    "groq": "openai/gpt-oss-120b",
+    "groq": GROQ_TEXT_MODEL,
     "openai": "gpt-4o-mini",
     "echo": "echo",
 }
 LLM_MODEL = os.getenv("LLM_MODEL", "").strip() or _DEFAULT_MODELS.get(LLM_BACKEND, "echo")
 
-# vector width. The local embedder uses this; OpenAI's small model is 1536.
+# Vector width. The local embedder uses this; OpenAI's small model is 1536.
 EMBEDDING_DIM = 1536 if EMBEDDING_BACKEND == "openai" else 384
 
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
+# Chunking is measured in estimated tokens now, not characters - characters
+# mislead badly on tables and code, where 1000 chars can be 400 or 900 tokens.
+CHUNK_TOKENS = int(os.getenv("CHUNK_TOKENS", "380"))
+CHUNK_OVERLAP_TOKENS = int(os.getenv("CHUNK_OVERLAP_TOKENS", "60"))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))        # retained for compatibility
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "150"))
-TOP_K = int(os.getenv("TOP_K", "5"))
+
+TOP_K = int(os.getenv("TOP_K", "6"))
+USE_RERANK = env_bool("USE_RERANK", True)
+
+# --- figure detection ---
+DETECT_FIGURES = env_bool("DETECT_FIGURES", True)
+
+# ============================================================
+#  Large uploads
+# ============================================================
+# Django streams anything above FILE_UPLOAD_MAX_MEMORY_SIZE to a temp file
+# rather than holding it in RAM. Keeping that threshold small is what lets a
+# 400MB PDF upload on a 512MB host without the process being killed.
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "200"))
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024          # 2MB, then spill to disk
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 # --- Celery (optional) ---
 CELERY_ENABLED = env_bool("CELERY_ENABLED", False)
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_TASK_ALWAYS_EAGER = not CELERY_ENABLED  # run tasks inline when Celery is off
+CELERY_TASK_ALWAYS_EAGER = not CELERY_ENABLED
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
+}
