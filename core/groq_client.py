@@ -69,9 +69,19 @@ def _raise(resp: httpx.Response) -> None:
     except Exception:
         detail = resp.text[:300]
 
-    if status in (401, 403):
+    # 401 and 403 mean different things and need different fixes, and Groq
+    # says which in the body. The old branch computed `detail` and then threw
+    # it away, so every one of these looked like a bad key.
+    if status == 401:
         raise GroqError(
-            "Groq rejected the API key. Check GROQ_API_KEY in your .env file.",
+            "Groq rejected the API key (401). It is missing, mistyped, or has "
+            "been deleted from console.groq.com. " + (f"Groq said: {detail}" if detail else ""),
+            status=status,
+        )
+    if status == 403:
+        raise GroqError(
+            "Groq accepted the key but refused this request (403) - usually the "
+            "account cannot use this model. " + (f"Groq said: {detail}" if detail else ""),
             status=status,
         )
     if status == 404:
