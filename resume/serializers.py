@@ -47,14 +47,19 @@ class TailoringSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    # Point at the download view, not the raw media path. The media path only
+    # resolves when DEBUG is on, and it carries no permission check at all.
+    def _download(self, obj, kind, handle):
+        return f"/api/resume/tailorings/{obj.pk}/download/{kind}/" if handle else None
+
     def get_docx_url(self, obj):
-        return obj.docx_file.url if obj.docx_file else None
+        return self._download(obj, "docx", obj.docx_file)
 
     def get_pdf_url(self, obj):
-        return obj.pdf_file.url if obj.pdf_file else None
+        return self._download(obj, "pdf", obj.pdf_file)
 
     def get_txt_url(self, obj):
-        return obj.txt_file.url if obj.txt_file else None
+        return self._download(obj, "txt", obj.txt_file)
 
 
 class AnswersSerializer(serializers.Serializer):

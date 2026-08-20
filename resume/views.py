@@ -1,5 +1,8 @@
 """CV tailoring API."""
 
+import re
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
 from django.conf import settings
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveDestroyAPIView
@@ -130,3 +133,59 @@ class TailoringQuestionsView(APIView):
         job.questions = interview.build_questions(job.requirements, job.gap_analysis)
         job.save(update_fields=["questions"])
         return Response({"questions": job.questions})
+
+
+class TailoringDownloadView(APIView):
+    """Serve a generated CV through Django instead of as a static media URL.
+
+    Two problems this solves.
+
+    The files used to be linked at their raw MEDIA_URL. Django only serves
+    MEDIA_URL when DEBUG is on, so the moment the site was deployed with
+    DEBUG=False every download 404'd — the browser reported "File wasn't
+    available on site".
+
+    The bigger one: those URLs had no permission check. A tailored CV carries
+    a person's full name, phone number, email and entire work history, and
+    anyone holding the link could fetch anyone's. Ownership is now checked on
+    every request.
+    """
+
+    FIELDS = {"docx": "docx_file", "pdf": "pdf_file", "txt": "txt_file"}
+    TYPES = {
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "pdf": "application/pdf",
+        "txt": "text/plain; charset=utf-8",
+    }
+
+    def get(self, request, pk, kind):
+        if kind not in self.FIELDS:
+            raise Http404
+
+        tailoring = get_object_or_404(Tailoring, pk=pk, owner=request.user)
+        handle = getattr(tailoring, self.FIELDS[kind], None)
+
+        if not handle:
+            return Response(
+                {"detail": "That file has not been generated yet. Run the tailoring again."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Free hosting wipes the disk on restart, so a file recorded in the
+        # database can be gone from storage. Say so plainly instead of raising.
+        try:
+            exists = handle.storage.exists(handle.name)
+        except Exception:
+            exists = False
+        if not exists:
+            return Response(
+                {"detail": "That file is no longer on the server — free hosting "
+                           "clears uploaded files when the service restarts. "
+                           "Run the tailoring again to regenerate it."},
+                status=status.HTTP_410_GONE,
+            )
+
+        safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", (tailoring.job_title or "cv")).strip("_")
+        filename = f"{safe_title or 'cv'}.{kind}"
+        return FileResponse(handle.open("rb"), as_attachment=True,
+                            filename=filename, content_type=self.TYPES[kind])

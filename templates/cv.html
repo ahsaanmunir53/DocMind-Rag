@@ -537,11 +537,47 @@ function renderOutput(job){
   $("#output").classList.remove("hide");
 
   const dl = [];
-  if(job.docx_url) dl.push(`<a class="btn" href="${job.docx_url}" download>Download ATS-safe DOCX</a>`);
-  if(job.pdf_url)  dl.push(`<a class="btn sec" href="${job.pdf_url}" download>Download PDF</a>`);
-  if(job.txt_url)  dl.push(`<a class="btn sec" href="${job.txt_url}" download>Download plain text</a>`);
+  if(job.docx_url) dl.push(`<a class="btn dlbtn" href="${job.docx_url}" download>Download ATS-safe DOCX</a>`);
+  if(job.pdf_url)  dl.push(`<a class="btn sec dlbtn" href="${job.pdf_url}" download>Download PDF</a>`);
+  if(job.txt_url)  dl.push(`<a class="btn sec dlbtn" href="${job.txt_url}" download>Download plain text</a>`);
   $("#downloads").innerHTML = dl.join("") ||
     `<span class="status">No file produced — add GROQ_API_KEY to enable rewriting. The audit and score above are complete either way.</span>`;
+
+  // A plain <a download> that hits an error shows the browser's own
+  // "File wasn't available on site" and nothing else. Fetch first, so a file
+  // lost to a restart can say what actually happened.
+  document.querySelectorAll("#downloads .dlbtn").forEach(a => {
+    a.addEventListener("click", async ev => {
+      ev.preventDefault();
+      const original = a.textContent;
+      a.textContent = "Preparing…";
+      try {
+        const r = await fetch(a.href, { credentials: "same-origin" });
+        if (!r.ok) {
+          let detail = "That download is not available.";
+          try { detail = (await r.json()).detail || detail; } catch {}
+          say($("#tailor-status"), detail, "err");
+          return;
+        }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const tmp = document.createElement("a");
+        tmp.href = url;
+        tmp.download = (a.getAttribute("href").split("/").filter(Boolean).pop() || "cv");
+        const cd = r.headers.get("Content-Disposition") || "";
+        const m = cd.match(/filename="?([^"]+)"?/);
+        if (m) tmp.download = m[1];
+        document.body.appendChild(tmp);
+        tmp.click();
+        tmp.remove();
+        URL.revokeObjectURL(url);
+      } catch {
+        say($("#tailor-status"), "Could not reach the server for that download.", "err");
+      } finally {
+        a.textContent = original;
+      }
+    });
+  });
 
   renderFabrication(job);
 
