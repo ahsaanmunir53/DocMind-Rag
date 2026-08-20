@@ -24,6 +24,13 @@
     .foot{text-align:center;margin-top:22px;font-size:13px;color:var(--muted)}
     .foot a{color:var(--brand2);font-weight:600;text-decoration:none}
     a.back{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-bottom:20px}
+    .pw{position:relative}
+    .pw input{padding-right:64px}
+    .peek{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px}
+    .peek:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+    .meter{height:4px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:8px;overflow:hidden}
+    .meter span{display:block;height:100%;width:0;border-radius:99px;transition:width .2s,background .2s}
+    input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   </style>
 </head>
 <body>
@@ -39,19 +46,81 @@
     <input name="username" value="{{ form.username.value|default:'' }}" autofocus required />
     {% if form.username.errors %}<div class="err">{{ form.username.errors|join:" " }}</div>{% endif %}
 
-    <label>Password</label>
-    <input name="password1" type="password" required />
-    <div class="help">At least 8 characters, not too common, not all numbers.</div>
+    <label for="p1">Password</label>
+    <div class="pw">
+      <input id="p1" name="password1" type="password" autocomplete="new-password" required />
+      <button class="peek" type="button" id="peek" aria-label="Show password">Show</button>
+    </div>
+    <div class="meter"><span id="bar"></span></div>
+    <div class="help" id="strength">At least 8 characters, not too common, not all numbers.</div>
     {% if form.password1.errors %}<div class="err">{{ form.password1.errors|join:" " }}</div>{% endif %}
 
-    <label>Confirm password</label>
-    <input name="password2" type="password" required />
+    <label for="p2">Confirm password</label>
+    <input id="p2" name="password2" type="password" autocomplete="new-password" required />
+    <div class="help" id="match"></div>
     {% if form.password2.errors %}<div class="err">{{ form.password2.errors|join:" " }}</div>{% endif %}
 
     <button class="btn" id="submitBtn" type="submit">Create account</button>
     <p class="foot">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
   </form>
   <script>
+    /* Password feedback while typing.
+       Django rejects weak passwords server-side, but only after a full page
+       round trip that clears both fields. Saying it here means people fix it
+       before they lose what they typed. This is guidance, not validation —
+       the server still decides. */
+    var p1 = document.getElementById("p1");
+    var p2 = document.getElementById("p2");
+    var bar = document.getElementById("bar");
+    var strength = document.getElementById("strength");
+    var match = document.getElementById("match");
+    var peek = document.getElementById("peek");
+
+    peek.addEventListener("click", function () {
+      var showing = p1.type === "text";
+      p1.type = showing ? "password" : "text";
+      peek.textContent = showing ? "Show" : "Hide";
+      p1.focus();
+    });
+
+    function score(v) {
+      var s = 0;
+      if (v.length >= 8) s++;
+      if (v.length >= 12) s++;
+      if (/[a-z]/.test(v) && /[A-Z]/.test(v)) s++;
+      if (/[0-9]/.test(v)) s++;
+      if (/[^A-Za-z0-9]/.test(v)) s++;
+      if (/^[0-9]+$/.test(v)) s = Math.min(s, 1);   // all digits is rejected
+      return Math.min(s, 4);
+    }
+    var LABEL = ["Too short", "Weak", "Getting there", "Good", "Strong"];
+    var COLOR = ["#dc2626", "#dc2626", "#f59e0b", "#84cc16", "#22c55e"];
+
+    p1.addEventListener("input", function () {
+      var v = p1.value;
+      if (!v) {
+        bar.style.width = "0";
+        strength.textContent = "At least 8 characters, not too common, not all numbers.";
+        strength.style.color = "";
+        return;
+      }
+      var s = score(v);
+      bar.style.width = ((s + 1) * 20) + "%";
+      bar.style.background = COLOR[s];
+      strength.textContent = LABEL[s] +
+        (v.length < 8 ? " — needs at least 8 characters" : "");
+      strength.style.color = COLOR[s];
+      checkMatch();
+    });
+
+    function checkMatch() {
+      if (!p2.value) { match.textContent = ""; return; }
+      var same = p1.value === p2.value;
+      match.textContent = same ? "Passwords match" : "Passwords do not match yet";
+      match.style.color = same ? "#22c55e" : "#f59e0b";
+    }
+    p2.addEventListener("input", checkMatch);
+
     // A double-clicked submit sends two POSTs at once, which used to race and
     // 500 on the UNIQUE username constraint. Disable after the first click.
     document.querySelector('form').addEventListener('submit', function () {

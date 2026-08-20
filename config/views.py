@@ -4,9 +4,33 @@ Page views: public landing, the (login-required) app, and public signup.
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.views import LoginView
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
+
+
+class RememberMeLoginView(LoginView):
+    """Django's login view plus a "keep me signed in" choice.
+
+    Unticked, the session cookie is dropped when the browser closes — which is
+    what you want on a shared or public machine. Ticked, it lives for
+    SESSION_COOKIE_AGE and is refreshed on every visit.
+
+    Nothing about the login is written to localStorage. The session cookie is
+    HttpOnly, so no script on the page can read it; a token in localStorage
+    would be readable by any script that runs, and one XSS would be enough to
+    take the account.
+    """
+
+    template_name = "login.html"
+
+    def form_valid(self, form):
+        remember = self.request.POST.get("remember") == "on"
+        response = super().form_valid(form)
+        if not remember:
+            self.request.session.set_expiry(0)   # until the browser closes
+        return response
 
 
 def home(request):

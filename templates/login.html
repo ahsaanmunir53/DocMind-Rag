@@ -23,6 +23,16 @@
     .foot{text-align:center;margin-top:22px;font-size:13px;color:var(--muted)}
     .foot a{color:var(--brand2);font-weight:600;text-decoration:none}
     a.back{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-bottom:20px}
+    .pw{position:relative}
+    .pw input{padding-right:64px}
+    .peek{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px}
+    .peek:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+    .row{display:flex;align-items:center;gap:9px;margin-top:18px}
+    .row input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;flex:none}
+    .row label{margin:0;font-weight:500;font-size:13px;color:var(--muted);cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:default;transform:none}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+    input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   </style>
 </head>
 <body>
@@ -32,12 +42,46 @@
     <div class="logo"><span class="dot">◆</span> DocuMind</div>
     <p class="sub">Welcome back. Sign in to your documents.</p>
     {% if form.errors %}<div class="err">Wrong username or password. Try again.</div>{% endif %}
-    <label>Username</label>
-    <input name="username" autofocus required />
-    <label>Password</label>
-    <input name="password" type="password" required />
-    <button class="btn" type="submit">Sign in</button>
+    <label for="id_username">Username</label>
+    <input id="id_username" name="username" autocomplete="username" autofocus required />
+
+    <label for="id_password">Password</label>
+    <div class="pw">
+      <input id="id_password" name="password" type="password"
+             autocomplete="current-password" required />
+      <button class="peek" type="button" id="peek" aria-label="Show password">Show</button>
+    </div>
+
+    <div class="row">
+      <input type="checkbox" id="remember" name="remember" checked />
+      <label for="remember">Keep me signed in for 30 days</label>
+    </div>
+    <p class="hint">Leave this unticked on a shared or public computer — your
+      session will end when you close the browser.</p>
+
+    <button class="btn" type="submit" id="submit">Sign in</button>
     <p class="foot">No account? <a href="{% url 'signup' %}">Create one</a></p>
   </form>
+<script>
+  // Show/hide the password. Typos are the most common reason a login fails,
+  // and hiding the field makes them impossible to spot.
+  const pw = document.getElementById("password") || document.getElementById("id_password");
+  const peek = document.getElementById("peek");
+  peek.addEventListener("click", () => {
+    const showing = pw.type === "text";
+    pw.type = showing ? "password" : "text";
+    peek.textContent = showing ? "Show" : "Hide";
+    peek.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    pw.focus();
+  });
+
+  // Stop a double-click sending the form twice, and say what is happening.
+  const form = document.querySelector("form");
+  const btn = document.getElementById("submit");
+  form.addEventListener("submit", () => {
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+  });
+</script>
 </body>
 </html>

@@ -8,159 +8,515 @@
     :root { --ink:#0f1222; --muted:#6b7280; --line:#e6e8f0; --brand:#4f46e5; --brand2:#eef2ff; --bg:#f7f8fc; --ok:#059669; --warn:#d97706; --err:#dc2626; }
     * { box-sizing:border-box; } html,body { margin:0; height:100%; }
     body { font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink); background:var(--bg); }
-    .app { display:grid; grid-template-columns:300px 1fr; height:100vh; }
+    .app { display:grid; grid-template-columns:300px 1fr; height:100dvh; }
+
     /* sidebar */
     .side { border-right:1px solid var(--line); background:#fff; display:flex; flex-direction:column; min-height:0; }
-    .brand { padding:18px 20px; font-weight:700; font-size:18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+    .brand { padding:18px 20px; font-weight:700; font-size:18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .brand a { font-size:12px; color:var(--muted); text-decoration:none; font-weight:500; }
+    .brand a:hover { color:var(--brand); }
+    .who { padding:10px 20px; font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .who b { color:var(--ink); }
+    .linkbtn { background:none; border:0; color:var(--muted); font:inherit; font-size:12px; cursor:pointer; padding:0; text-decoration:underline; }
+    .linkbtn:hover { color:var(--err); }
+
     .up { padding:16px 20px; border-bottom:1px solid var(--line); }
-    .up input[type=file] { width:100%; font-size:13px; }
+    .drop { border:1.5px dashed var(--line); border-radius:12px; padding:16px 12px; text-align:center; font-size:12.5px; color:var(--muted); cursor:pointer; transition:.15s; }
+    .drop:hover, .drop.over { border-color:var(--brand); background:var(--brand2); color:var(--brand); }
+    .drop b { display:block; color:var(--ink); font-size:13px; margin-bottom:3px; }
+    .drop.over b { color:var(--brand); }
+    .chosen { margin-top:9px; font-size:12px; display:none; align-items:center; gap:6px; }
+    .chosen.show { display:flex; }
+    .chosen span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .up button { margin-top:10px; width:100%; padding:9px; border:0; border-radius:9px; background:var(--brand); color:#fff; font-weight:600; cursor:pointer; font-size:13px; }
+    .up button:disabled { opacity:.5; cursor:not-allowed; }
+
     .docs { flex:1; overflow:auto; padding:10px 12px; min-height:0; }
-    .doc { padding:10px 12px; border-radius:10px; cursor:pointer; border:1px solid transparent; margin-bottom:4px; }
+    .doc { padding:10px 12px; border-radius:10px; cursor:pointer; border:1px solid transparent; margin-bottom:4px; position:relative; }
     .doc:hover { background:var(--brand2); } .doc.active { background:var(--brand2); border-color:var(--brand); }
-    .doc .t { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .doc .s { font-size:11px; margin-top:2px; }
+    .doc .t { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:22px; }
+    .doc .s { font-size:11px; margin-top:2px; color:var(--muted); }
+    .doc .x { position:absolute; top:8px; right:8px; border:0; background:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; border-radius:5px; opacity:0; }
+    .doc:hover .x { opacity:1; } .doc .x:hover { background:#fef2f2; color:var(--err); }
     .pill { display:inline-block; padding:1px 7px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; }
     .pill.ready{background:#ecfdf5;color:var(--ok)} .pill.processing,.pill.pending{background:#fffbeb;color:var(--warn)} .pill.failed{background:#fef2f2;color:var(--err)}
+    .sidenote { padding:14px 16px; font-size:12px; color:var(--muted); text-align:center; line-height:1.5; }
+
     /* main */
     .main { display:flex; flex-direction:column; min-height:0; }
-    .head { padding:16px 24px; border-bottom:1px solid var(--line); background:#fff; font-size:14px; color:var(--muted); }
+    .head { padding:14px 24px; border-bottom:1px solid var(--line); background:#fff; font-size:14px; color:var(--muted); display:flex; align-items:center; gap:12px; }
     .head b { color:var(--ink); }
+    .burger { display:none; background:none; border:1px solid var(--line); border-radius:8px; padding:6px 10px; cursor:pointer; font-size:15px; line-height:1; }
+    .clear { margin-left:auto; }
+
     .feed { flex:1; overflow:auto; padding:24px; display:flex; flex-direction:column; gap:16px; min-height:0; }
     .msg { max-width:760px; } .msg.user { align-self:flex-end; }
-    .bubble { padding:12px 16px; border-radius:14px; font-size:14px; line-height:1.5; white-space:pre-wrap; }
+    .bubble { padding:12px 16px; border-radius:14px; font-size:14px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }
     .user .bubble { background:var(--brand); color:#fff; border-bottom-right-radius:4px; }
     .bot .bubble { background:#fff; border:1px solid var(--line); border-bottom-left-radius:4px; }
+    .bot.error .bubble { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
     .sources { margin-top:8px; font-size:12px; color:var(--muted); }
-    .src { background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px; }
+    .sources summary { cursor:pointer; font-weight:600; color:var(--ink); padding:4px 0; }
+    .src { background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px; overflow-wrap:anywhere; }
     .src b { color:var(--ink); }
-    .empty { margin:auto; text-align:center; color:var(--muted); max-width:420px; }
-    .empty h2 { color:var(--ink); }
-    .composer { border-top:1px solid var(--line); background:#fff; padding:14px 24px; display:flex; gap:10px; }
-    .composer input { flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:12px; font-size:14px; }
-    .composer button { padding:12px 20px; border:0; border-radius:12px; background:var(--brand); color:#fff; font-weight:600; cursor:pointer; }
+    .empty { margin:auto; text-align:center; color:var(--muted); max-width:440px; }
+    .empty h2 { color:var(--ink); margin-bottom:8px; }
+    .empty kbd { background:#fff; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 5px; font-size:11px; font-family:inherit; }
+
+    .dots span { display:inline-block; width:5px; height:5px; margin-right:3px; border-radius:50%; background:var(--muted); animation:b 1.2s infinite; }
+    .dots span:nth-child(2){animation-delay:.15s} .dots span:nth-child(3){animation-delay:.3s}
+    @keyframes b { 0%,60%,100%{opacity:.25;transform:translateY(0)} 30%{opacity:1;transform:translateY(-3px)} }
+
+    .composer { border-top:1px solid var(--line); background:#fff; padding:12px 24px 14px; }
+    .crow { display:flex; gap:10px; align-items:flex-end; }
+    .composer textarea { flex:1; padding:11px 14px; border:1px solid var(--line); border-radius:12px; font-size:14px; font-family:inherit; resize:none; max-height:160px; line-height:1.45; }
+    .composer textarea:focus { outline:none; border-color:var(--brand); }
+    .composer button { padding:11px 20px; border:0; border-radius:12px; background:var(--brand); color:#fff; font-weight:600; cursor:pointer; }
     .composer button:disabled { opacity:.5; cursor:not-allowed; }
-    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; opacity:0; transition:.2s; }
+    .hint { font-size:11px; color:var(--muted); margin-top:6px; }
+
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; opacity:0; pointer-events:none; transition:.2s; z-index:50; max-width:90vw; }
     .toast.show { opacity:1; }
+    .toast.bad { background:var(--err); }
+
+    .scrim { display:none; }
+    @media (max-width:820px) {
+      .app { grid-template-columns:1fr; }
+      .side { position:fixed; inset:0 auto 0 0; width:290px; z-index:40; transform:translateX(-100%); transition:transform .2s; }
+      .side.open { transform:none; box-shadow:0 0 40px rgba(0,0,0,.25); }
+      .burger { display:block; }
+      .scrim.on { display:block; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:30; }
+      .feed, .composer { padding-left:16px; padding-right:16px; }
+    }
+    :focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
   </style>
 </head>
 <body>
   <div class="app">
-    <aside class="side">
+    <aside class="side" id="side">
       <div class="brand">
-        <a href="/" style="text-decoration:none;color:inherit">DocuMind</a>
-        <a href="/cv/" style="margin-right:14px;color:inherit;font-weight:600">CV tailoring</a>
-        <form action="/accounts/logout/" method="post" style="display:inline">{% csrf_token %}<button type="submit" style="background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:0">Sign out</button></form>
+        <a href="/" style="text-decoration:none;color:inherit;font-size:18px;font-weight:700">DocuMind</a>
+        <a href="/cv/">CV tailoring</a>
       </div>
+
+      <div class="who">
+        <span>Signed in as <b>{{ user.username }}</b></span>
+        <form action="/accounts/logout/" method="post" style="display:inline">
+          {% csrf_token %}<button class="linkbtn" type="submit">Sign out</button>
+        </form>
+      </div>
+
       <div class="up">
-        <input type="file" id="file" accept=".pdf,.txt,.md" />
-        <button id="uploadBtn">Upload document</button>
+        <input type="file" id="file" accept=".pdf,.txt,.md" hidden />
+        <div class="drop" id="drop" tabindex="0" role="button"
+             aria-label="Choose a file or drop one here">
+          <b>Drop a file here</b>
+          or click to browse · PDF, TXT, MD
+        </div>
+        <div class="chosen" id="chosen"><span id="chosenName"></span>
+          <button class="linkbtn" id="clearFile" type="button">remove</button></div>
+        <button id="uploadBtn" disabled>Upload document</button>
       </div>
+
       <div class="docs" id="docs"></div>
     </aside>
+    <div class="scrim" id="scrim"></div>
+
     <main class="main">
-      <div class="head" id="scope">Ask across <b>all documents</b></div>
-      <div class="feed" id="feed">
-        <div class="empty" id="empty">
-          <h2>Chat with your documents</h2>
-          <p>Upload a PDF or text file on the left, wait for it to say <b>ready</b>, then ask a question. Answers cite the source passages.</p>
-        </div>
+      <div class="head">
+        <button class="burger" id="burger" aria-label="Show documents">☰</button>
+        <span id="scope">Ask across <b>all documents</b></span>
+        <button class="linkbtn clear" id="clearChat">Clear chat</button>
       </div>
+
+      <div class="feed" id="feed"></div>
+
       <div class="composer">
-        <input id="q" placeholder="Ask a question about your documents…" />
-        <button id="send">Ask</button>
+        <div class="crow">
+          <textarea id="q" rows="1" placeholder="Ask a question about your documents…"></textarea>
+          <button id="send">Ask</button>
+        </div>
+        <div class="hint">Enter to send · Shift + Enter for a new line</div>
       </div>
     </main>
   </div>
   <div class="toast" id="toast"></div>
 
 <script>
-// CSRF token rendered server-side by Django — always present, and this tag
-// also guarantees the csrftoken cookie is set (which DRF checks against).
+/* ------------------------------------------------------------------ setup */
+
+// Rendered server-side, so it is always present. The tag also guarantees the
+// csrftoken cookie exists, which is what Django checks the header against.
 window.CSRF_TOKEN = "{{ csrf_token }}";
-function getCookie(name){ return document.cookie.split('; ').find(r=>r.startsWith(name+'='))?.split('=')[1]; }
-let activeDoc = null;        // null => all documents
-let conversation = null;
+
 const $ = s => document.querySelector(s);
+const USER = "{{ user.username|escapejs }}";
+const MAX_UPLOAD_MB = 200;
 
-function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+let activeDoc = null;      // null => every document
+let conversation = null;
+let messages = [];         // what is on screen, so it can be restored
 
-async function api(url, opts={}){
-  const res = await fetch(url, {
-    headers:{'X-CSRFToken': window.CSRF_TOKEN || getCookie('csrftoken') || '', ...(opts.headers||{})},
-    credentials:'same-origin',
-    ...opts
-  });
-  if(res.status===403){ location.href='/accounts/login/'; return; }
-  return res;
+/* Local storage holds interface state only — which document is selected, an
+   unsent question, whether the sidebar is open. Never anything about the
+   login: the session cookie is HttpOnly and unreachable from here, which is
+   exactly why it is safe. A token kept in localStorage would be readable by
+   any script on the page, so a single XSS would hand over the account.
+   Keys are namespaced per user so two people sharing a browser do not
+   inherit each other's state. */
+const NS = "documind:" + USER + ":";
+const store = {
+  get(k, fallback) {
+    try { const v = localStorage.getItem(NS + k); return v === null ? fallback : JSON.parse(v); }
+    catch { return fallback; }          // private mode, quota, corrupt value
+  },
+  set(k, v) { try { localStorage.setItem(NS + k, JSON.stringify(v)); } catch {} },
+  del(k)    { try { localStorage.removeItem(NS + k); } catch {} },
+};
+
+/* Everything a document or a model writes is inserted as text, never as HTML.
+   Source snippets come straight out of an uploaded file, so a PDF containing
+   <img src=x onerror=...> would otherwise run its own script on this page. */
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+function toast(m, bad) {
+  const t = $("#toast");
+  t.textContent = m;
+  t.className = "toast show" + (bad ? " bad" : "");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2800);
 }
 
-async function loadDocs(){
-  const res = await api('/api/documents/'); if(!res) return;
-  const docs = await res.json();
-  const box = $('#docs'); box.innerHTML='';
-  const all = document.createElement('div');
-  all.className='doc'+(activeDoc===null?' active':''); all.innerHTML='<div class="t">📚 All documents</div>';
-  all.onclick=()=>{ activeDoc=null; conversation=null; renderScope(); loadDocs(); clearFeed(); };
+async function api(url, opts = {}) {
+  try {
+    const res = await fetch(url, {
+      headers: { "X-CSRFToken": window.CSRF_TOKEN, ...(opts.headers || {}) },
+      credentials: "same-origin",
+      ...opts,
+    });
+    if (res.status === 401 || res.status === 403) {
+      toast("Your session ended. Taking you to sign in…", true);
+      setTimeout(() => location.href = "/accounts/login/?next=" + encodeURIComponent(location.pathname), 1200);
+      return null;
+    }
+    return res;
+  } catch {
+    return null;                        // caller decides what to say
+  }
+}
+
+/* ------------------------------------------------------------- documents */
+
+let docCache = [];
+let pollTimer = null;
+
+async function loadDocs() {
+  const res = await api("/api/documents/");
+  if (!res || !res.ok) { renderDocs(null); return; }
+  docCache = await res.json();
+
+  // A document remembered from last time may have been deleted since.
+  if (activeDoc !== null && !docCache.some(d => d.id === activeDoc)) {
+    activeDoc = null;
+    store.del("activeDoc");
+  }
+  renderDocs(docCache);
+  renderScope();
+
+  clearTimeout(pollTimer);
+  if (docCache.some(d => d.status === "pending" || d.status === "processing")) {
+    pollTimer = setTimeout(loadDocs, 1500);
+  }
+}
+
+function renderDocs(docs) {
+  const box = $("#docs");
+  box.innerHTML = "";
+
+  if (docs === null) {
+    box.innerHTML = '<div class="sidenote">Could not load your documents.<br>Check your connection and try again.</div>';
+    return;
+  }
+
+  const all = document.createElement("div");
+  all.className = "doc" + (activeDoc === null ? " active" : "");
+  all.innerHTML = '<div class="t">📚 All documents</div>' +
+    '<div class="s">' + docs.filter(d => d.status === "ready").length + " ready</div>";
+  all.onclick = () => select(null);
   box.appendChild(all);
-  docs.forEach(d=>{
-    const el=document.createElement('div');
-    el.className='doc'+(activeDoc===d.id?' active':'');
-    el.innerHTML=`<div class="t">📄 ${d.title}</div><div class="s"><span class="pill ${d.status}">${d.status}</span> ${d.num_chunks?d.num_chunks+' chunks':''}</div>`;
-    el.onclick=()=>{ if(d.status!=='ready'){toast('This document is '+d.status+'.');return;} activeDoc=d.id; conversation=null; renderScope(); loadDocs(); clearFeed(); };
+
+  if (!docs.length) {
+    box.insertAdjacentHTML("beforeend",
+      '<div class="sidenote">Nothing uploaded yet.<br>Add a PDF to get started.</div>');
+    return;
+  }
+
+  docs.forEach(d => {
+    const el = document.createElement("div");
+    el.className = "doc" + (activeDoc === d.id ? " active" : "");
+    el.innerHTML =
+      '<div class="t" title="' + esc(d.title) + '">📄 ' + esc(d.title) + "</div>" +
+      '<div class="s"><span class="pill ' + esc(d.status) + '">' + esc(d.status) + "</span> " +
+      (d.num_chunks ? d.num_chunks + " chunks" : "") + "</div>" +
+      '<button class="x" title="Delete this document" aria-label="Delete">×</button>';
+
+    el.onclick = e => {
+      if (e.target.classList.contains("x")) { removeDoc(d); return; }
+      if (d.status !== "ready") { toast("That document is still " + d.status + "."); return; }
+      select(d.id);
+    };
     box.appendChild(el);
   });
-  // keep polling while anything is still processing
-  if(docs.some(d=>d.status==='pending'||d.status==='processing')) setTimeout(loadDocs, 1500);
 }
 
-function renderScope(){
-  if(activeDoc===null){ $('#scope').innerHTML='Ask across <b>all documents</b>'; return; }
-  const t=[...document.querySelectorAll('.doc .t')].find(x=>x)? null:null;
-  $('#scope').innerHTML='Asking within <b>selected document</b>';
+function select(id) {
+  if (id === activeDoc) return;
+  activeDoc = id;
+  conversation = null;
+  if (id === null) store.del("activeDoc"); else store.set("activeDoc", id);
+  clearChat(false);
+  renderDocs(docCache);
+  renderScope();
+  closeSidebar();
 }
-function clearFeed(){ $('#feed').innerHTML='<div class="empty"><h2>Ask a question</h2><p>Type below to query your documents.</p></div>'; }
 
-function addMsg(role, html, sources){
-  const empty=$('#empty'); if(empty) empty.remove();
-  const wrap=document.createElement('div'); wrap.className='msg '+(role==='user'?'user':'bot');
-  let s=''; if(sources && sources.length){
-    s='<div class="sources"><b>Sources:</b>'+sources.map((x,i)=>`<div class="src"><b>[${i+1}] ${x.document}</b> · part ${x.index+1} · score ${x.score}<br>${x.text}…</div>`).join('')+'</div>';
+function renderScope() {
+  // The old version always said "selected document" — it never looked up
+  // which one, so you could not tell what you were asking.
+  if (activeDoc === null) {
+    $("#scope").innerHTML = "Ask across <b>all documents</b>";
+    return;
   }
-  wrap.innerHTML=`<div class="bubble">${html}</div>${s}`;
-  $('#feed').appendChild(wrap); $('#feed').scrollTop=$('#feed').scrollHeight;
+  const d = docCache.find(x => x.id === activeDoc);
+  $("#scope").innerHTML = "Asking within <b>" + esc(d ? d.title : "one document") + "</b>";
 }
 
-async function ask(){
-  const q=$('#q').value.trim(); if(!q) return;
-  $('#q').value=''; $('#send').disabled=true;
-  addMsg('user', q);
-  addMsg('bot', '…thinking');
-  const thinking=$('#feed').lastChild;
-  try{
-    const res=await api('/api/chat/ask/', { method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ question:q, document:activeDoc, conversation }) });
-    const data=await res.json();
-    thinking.remove();
-    if(res.ok){ conversation=data.conversation; addMsg('bot', data.message.content, data.message.sources); }
-    else addMsg('bot', 'Error: '+(data.error||'something went wrong'));
-  }catch(e){ thinking.remove(); addMsg('bot','Network error.'); }
-  $('#send').disabled=false; $('#q').focus();
+async function removeDoc(d) {
+  if (!confirm('Delete "' + d.title + '"? This cannot be undone.')) return;
+  const res = await api("/api/documents/" + d.id + "/", { method: "DELETE" });
+  if (res && (res.ok || res.status === 204)) {
+    toast("Deleted.");
+    if (activeDoc === d.id) select(null);
+    loadDocs();
+  } else {
+    toast("Could not delete that document.", true);
+  }
 }
 
-$('#uploadBtn').onclick=async()=>{
-  const f=$('#file').files[0]; if(!f){ toast('Choose a file first.'); return; }
-  const fd=new FormData(); fd.append('file', f); fd.append('title', f.name);
-  $('#uploadBtn').disabled=true; $('#uploadBtn').textContent='Uploading…';
-  const res=await api('/api/documents/', { method:'POST', body:fd });
-  $('#uploadBtn').disabled=false; $('#uploadBtn').textContent='Upload document';
-  if(res && res.ok){ $('#file').value=''; toast('Uploaded — processing…'); loadDocs(); }
-  else toast('Upload failed.');
+/* --------------------------------------------------------------- messages */
+
+function renderFeed() {
+  const feed = $("#feed");
+  feed.innerHTML = "";
+
+  if (!messages.length) {
+    feed.innerHTML =
+      '<div class="empty"><h2>Chat with your documents</h2>' +
+      "<p>Upload a PDF on the left and wait for it to say <b>ready</b>, then ask anything. " +
+      "Every answer shows the passages it came from.</p>" +
+      '<p style="margin-top:14px"><kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line</p></div>';
+    return;
+  }
+
+  messages.forEach(m => feed.appendChild(bubble(m)));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function bubble(m) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + (m.role === "user" ? "user" : "bot") + (m.error ? " error" : "");
+
+  let html = '<div class="bubble">' + esc(m.text) + "</div>";
+
+  if (m.sources && m.sources.length) {
+    html += '<details class="sources"><summary>' + m.sources.length +
+      " source" + (m.sources.length > 1 ? "s" : "") + "</summary>" +
+      m.sources.map((x, i) =>
+        '<div class="src"><b>[' + (i + 1) + "] " + esc(x.document) + "</b> · " +
+        (x.page ? "page " + esc(x.page) : "part " + (x.index + 1)) +
+        " · score " + esc(x.score) + "<br>" + esc(x.text) + "…</div>").join("") +
+      "</details>";
+  }
+  wrap.innerHTML = html;
+  return wrap;
+}
+
+function push(role, text, extra = {}) {
+  messages.push({ role, text, ...extra });
+  const feed = $("#feed");
+  if (messages.length === 1) feed.innerHTML = "";
+  feed.appendChild(bubble(messages[messages.length - 1]));
+  feed.scrollTop = feed.scrollHeight;
+  saveChat();
+}
+
+/* The transcript is kept per document so switching back and forth does not
+   lose the conversation. Trimmed to the last 40 turns to stay well inside
+   the storage quota. */
+const chatKey = () => "chat:" + (activeDoc === null ? "all" : activeDoc);
+function saveChat() {
+  store.set(chatKey(), { conversation, messages: messages.slice(-40) });
+}
+function restoreChat() {
+  const saved = store.get(chatKey(), null);
+  messages = (saved && saved.messages) || [];
+  conversation = (saved && saved.conversation) || null;
+  renderFeed();
+}
+function clearChat(alsoStored = true) {
+  messages = [];
+  conversation = null;
+  if (alsoStored) store.del(chatKey());
+  renderFeed();
+}
+
+/* ------------------------------------------------------------------ asking */
+
+async function ask() {
+  const box = $("#q");
+  const q = box.value.trim();
+  if (!q) return;
+
+  if (!docCache.some(d => d.status === "ready")) {
+    toast("Upload a document first — there is nothing to search yet.", true);
+    return;
+  }
+
+  box.value = "";
+  store.del("draft");
+  autoGrow();
+  $("#send").disabled = true;
+  push("user", q);
+
+  const thinking = document.createElement("div");
+  thinking.className = "msg bot";
+  thinking.innerHTML = '<div class="bubble"><span class="dots"><span></span><span></span><span></span></span></div>';
+  $("#feed").appendChild(thinking);
+  $("#feed").scrollTop = $("#feed").scrollHeight;
+
+  const res = await api("/api/chat/ask/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: q, document: activeDoc, conversation }),
+  });
+  thinking.remove();
+
+  if (!res) {
+    push("bot", "Could not reach the server. Check your connection and try again.", { error: true });
+  } else {
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (res.ok) {
+      conversation = data.conversation;
+      push("bot", (data.message && data.message.content) || "",
+           { sources: data.message && data.message.sources });
+    } else {
+      push("bot", data.error || "Something went wrong answering that.", { error: true });
+    }
+  }
+
+  $("#send").disabled = false;
+  $("#q").focus();
+}
+
+/* ------------------------------------------------------------------ upload */
+
+function pickFile(f) {
+  if (!f) return;
+  if (f.size > MAX_UPLOAD_MB * 1024 * 1024) {
+    // Caught here rather than after a long upload that the server rejects.
+    toast("That file is " + (f.size / 1048576).toFixed(0) + " MB. The limit is " + MAX_UPLOAD_MB + " MB.", true);
+    return;
+  }
+  $("#file").files = null;
+  window._file = f;
+  $("#chosenName").textContent = f.name + " · " + (f.size / 1048576).toFixed(1) + " MB";
+  $("#chosen").classList.add("show");
+  $("#uploadBtn").disabled = false;
+}
+
+function clearFile() {
+  window._file = null;
+  $("#file").value = "";
+  $("#chosen").classList.remove("show");
+  $("#uploadBtn").disabled = true;
+}
+
+$("#drop").onclick = () => $("#file").click();
+$("#drop").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#file").click(); } };
+$("#file").onchange = e => pickFile(e.target.files[0]);
+$("#clearFile").onclick = clearFile;
+
+["dragenter", "dragover"].forEach(ev =>
+  $("#drop").addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.add("over"); }));
+["dragleave", "drop"].forEach(ev =>
+  $("#drop").addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.remove("over"); }));
+$("#drop").addEventListener("drop", e => pickFile(e.dataTransfer.files[0]));
+
+$("#uploadBtn").onclick = async () => {
+  const f = window._file;
+  if (!f) { toast("Choose a file first."); return; }
+
+  const btn = $("#uploadBtn");
+  btn.disabled = true;
+  btn.textContent = "Uploading…";
+
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("title", f.name);
+
+  const res = await api("/api/documents/", { method: "POST", body: fd });
+  btn.textContent = "Upload document";
+
+  if (res && res.ok) {
+    clearFile();
+    toast("Uploaded — processing now.");
+    loadDocs();
+  } else {
+    btn.disabled = false;
+    let msg = "Upload failed.";
+    if (res) { try { const d = await res.json(); msg = d.error || d.detail || msg; } catch {} }
+    else { msg = "Could not reach the server."; }
+    toast(msg, true);
+  }
 };
-$('#send').onclick=ask;
-$('#q').addEventListener('keydown', e=>{ if(e.key==='Enter') ask(); });
+
+/* -------------------------------------------------------------- interface */
+
+function autoGrow() {
+  const t = $("#q");
+  t.style.height = "auto";
+  t.style.height = Math.min(t.scrollHeight, 160) + "px";
+}
+
+$("#q").addEventListener("input", () => {
+  autoGrow();
+  store.set("draft", $("#q").value);   // survives a refresh or a stray tab close
+});
+
+$("#q").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); }
+});
+
+$("#send").onclick = ask;
+$("#clearChat").onclick = () => { if (messages.length) clearChat(); };
+
+const openSidebar  = () => { $("#side").classList.add("open"); $("#scrim").classList.add("on"); };
+const closeSidebar = () => { $("#side").classList.remove("open"); $("#scrim").classList.remove("on"); };
+$("#burger").onclick = openSidebar;
+$("#scrim").onclick = closeSidebar;
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSidebar(); });
+
+/* ------------------------------------------------------------------ start */
+
+activeDoc = store.get("activeDoc", null);
+$("#q").value = store.get("draft", "");
+autoGrow();
+restoreChat();
+renderScope();
 loadDocs();
+$("#q").focus();
 </script>
 </body>
 </html>

@@ -99,9 +99,48 @@ LOGIN_REDIRECT_URL = "/app/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/accounts/login/"
 
+# ---------------------------------------------------------------- staying in
+#
+# "Keep me signed in" is handled here, by the session cookie — not by storing
+# anything in localStorage. A session cookie can be marked HttpOnly, which puts
+# it out of reach of any JavaScript on the page; anything in localStorage is
+# readable by every script that runs, so one XSS anywhere hands over the
+# account. The cookie is also sent automatically, so there is nothing for the
+# frontend to remember, drop, or leak.
+#
+# Sessions last 30 days and are refreshed on each visit, so an active user is
+# never asked to sign in again. The login view downgrades this to a
+# browser-session cookie when "Keep me signed in" is left unticked.
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"     # Lax still allows a normal top-level login
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# Cookies must travel over HTTPS in production. Left off in development, where
+# there is no certificate and the browser would simply discard them.
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+    # Render and similar hosts terminate TLS upstream and forward the origin.
+    CSRF_TRUSTED_ORIGINS = [
+        o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
+    ]
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "core.authentication.CsrfExemptSessionAuthentication",
+        # Stock session auth, CSRF check included. Both templates already send
+        # X-CSRFToken on every request, so nothing needs an exemption.
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
